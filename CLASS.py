@@ -1,4 +1,4 @@
-class FILTRE:
+class FILTRE():
     def __init__(self, id, fc, fs, ordre, type_filtre):
         self.id = id
         self.fc = fc
