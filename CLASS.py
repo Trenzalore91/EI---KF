@@ -20,9 +20,9 @@ class Signal_Original:
 
     
     def __GenerationSignal__(self):
-        if (self.Signal_Type == 'sinus') || (self.Signal_Type == 'Sinus') || (self.Signal_Type == 'SINUS'):
+        if (self.Signal_Type == 'sinus') or (self.Signal_Type == 'Sinus') or (self.Signal_Type == 'SINUS'):
             signal = self.Amplitude * np.sin(2 * np.pi * self.Frequence * self.Durée)
-        elif (self.Signal_Type == 'carré') || (self.Signal_Type == 'Carré') || (self.Signal_Type == 'CARRE'):
+        elif (self.Signal_Type == 'carré') or (self.Signal_Type == 'Carré') or (self.Signal_Type == 'CARRE'):
             signal = self.Amplitude * square(2 * np.pi * self.Frequence * self.Durée)
 
         return t, signal
