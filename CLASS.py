@@ -8,25 +8,22 @@ import csv
 import tkinter as tk
 
 class Signal_Original:
-    def __init__(self, Signal_Type, Amplitude, Frequence, Durée, Fs):
+    def __init__(self, Signal_Type, Amplitude, Frequence, Durée, Fs, Absicisse_Graph):
         self.Signal_Type = Signal_Type.lower()
         self.Amplitude = Amplitude
         self.Frequence = Frequence
         self.Durée = Durée
         self.Fs = Fs
+        self.Absicisse_Graph = Absicisse_Graph
 
         if self.Signal_Type not in ['sinus', 'carré', 'Sinus', 'Carré', 'SINUS', 'CARRE']:
             raise ValueError("Type de signal non reconnu. Choisissez 'sinus' ou 'carré'.")
-
-        # Calcul du nombre d'échantillons
-        self.N = int(self.Fs * self.Durée)
-        self.t = np.linspace(0, self.Durée, self.N, endpoint=False)
     
     def __Generation_Sinus__(self):
-        return self.Amplitude * np.sin(2 * np.pi * self.Frequence * self.t)
+        return self.Amplitude * np.sin(2 * np.pi * self.Frequence * self.Absicisse_Graph)
     
     def __Generation_Carre__(self):
-        return self.Amplitude * square(2 * np.pi * self.Frequence * self.t)
+        return self.Amplitude * square(2 * np.pi * self.Frequence * self.Absicisse_Graph)
         
 class SignalFilter:
     def __init__(self, filter_type, cutoff=None, order=1, dt=1.0, process_variance=1e-5, measurement_variance=1e-1):
