@@ -9,7 +9,7 @@ import tkinter as tk
 
 class Signal_Original:
     def __init__(self, Signal_Type, Amplitude, Frequence, Durée, Fs, Absicisse_Graph):
-        self.Signal_Type = Signal_Type.lower()
+        self.Signal_Type = Signal_Type
         self.Amplitude = Amplitude
         self.Frequence = Frequence
         self.Durée = Durée
