@@ -1,11 +1,11 @@
 class Filtre():
-    def __init__(self, id, fc, fs, ordre, signal_a_filtrer):
+    def __init__(self, id, fc, fs, ordre, gain, signal_a_filtrer):
         self.id = id
         self.fc = fc
         self.fs = fs
         self.ordre = ordre
         self.signal_a_filtrer = signal_a_filtrer
-        self.__sortiefiltre__()
+        self.gain = gain
 
     def __sortiefiltre__(self):
         freq = 0.5 * self.fs
