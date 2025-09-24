@@ -54,10 +54,10 @@ class SignalFilter:
         Kalman_B = self.gain*(1-exp(-(self.fs*1e-12)/tau))
         Kalman_C = 1.
 
-        Kalman_Q0 = self.Noise_STD**2 #Q_Kalman #0.1 #np.eye(1)*W_Noise_STD**2
-        Kalman_R0 = R_Kalman #np.eye(1)*W_Noise_STD**2
-        Kalman_P0 = P_Kalman #1. #np.eye(1)*1.
-        Kalman_x0 = X_Kalman #0. #np.eye(1)*0.
+        Kalman_Q0 = self.Noise_STD**2
+        Kalman_R0 = R_Kalman
+        Kalman_P0 = P_Kalman
+        Kalman_x0 = X_Kalman
 
         kf = KalmanFilter(dim_x=1, dim_z=1)
         kf.F = np.array([[Kalman_A]])
@@ -97,17 +97,17 @@ def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel):
     plt.grid(True)
     plt.show()
 
-def FFT_Signal(signal, fs, xlimit):
+def FFT_Signal(signal, fs, xlimit, abs_graph_FFT, ord_graph_FFT):
     n = len(signal)
     signal_fft = fft(signal)
     frequencies = fftfreq(n, 1/fs)
     positive_frequencies = frequencies[:n // 2]
     amplitudes = 2.0 / n * np.abs(signal_fft[:n // 2])
-    plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", Abscisse_Graph_FFT, Ordonnée_Graph_FFT, "FFT")
+    plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT")
     if xlimit is not None:
-        zoom_graph(positive_frequencies, amplitudes, (0, xlimit), (0, max(amplitudes)+(0.1 * max(amplitudes))), "Zoom sur le spectre de fréquence", Abscisse_Graph_FFT, Ordonnée_Graph_FFT)
+        zoom_graph(positive_frequencies, amplitudes, (0, xlimit), (0, max(amplitudes)+(0.1 * max(amplitudes))), "Zoom sur le spectre de fréquence", abs_graph_FFT, ord_graph_FFT)
 
-def Bode_Diagram(fc, gain, titre):
+def Bode_Diagram(fc, gain, titre, ord_graph_bode_gain, abs_graph_bode_phase, ord_graph_bode_phase):
     wc = 2 * np.pi * fc 
     num = [gain * wc]
     den = [1, wc]
@@ -121,7 +121,7 @@ def Bode_Diagram(fc, gain, titre):
     plt.subplot(2, 1, 1)
     plt.semilogx(w/(2*np.pi), mag)
     plt.title(titre)
-    plt.ylabel(Ordonnées_Graph_Bode_Gain)
+    plt.ylabel(ord_graph_bode_gain)
     plt.grid(which='both', linestyle='--')
     plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' THz')
     plt.axhline(y=-3, color='g', linestyle='--', label='-3 dB')
@@ -129,8 +129,8 @@ def Bode_Diagram(fc, gain, titre):
     
     plt.subplot(2, 1, 2)
     plt.semilogx(w/(2*np.pi), phase)
-    plt.xlabel(Abscisse_Graph_Bode_Phase)
-    plt.ylabel(Ordonnées_Graph_Bode_Phase)
+    plt.xlabel(abs_graph_bode_phase)
+    plt.ylabel(ord_graph_bode_phase)
     plt.grid(which='both', linestyle='--')
     #add a vertical line at the cutoff frequency
     plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' THz')
