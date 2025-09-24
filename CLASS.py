@@ -132,7 +132,6 @@ def Bode_Diagram(fc, gain, titre, ord_graph_bode_gain, abs_graph_bode_phase, ord
     plt.xlabel(abs_graph_bode_phase)
     plt.ylabel(ord_graph_bode_phase)
     plt.grid(which='both', linestyle='--')
-    #add a vertical line at the cutoff frequency
     plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' THz')
     plt.axhline(y=-45, color='g', linestyle='--', label='-45 °')
     plt.legend()
