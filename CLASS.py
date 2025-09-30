@@ -83,6 +83,8 @@ def plot_graph(x, y, title, xlabel, ylabel, legend):
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    if legend == "FFT" :
+        plt.axvline(x=x, color='r', linestyle='--')
     plt.legend()
     plt.grid(True)
     plt.show()
