@@ -83,9 +83,13 @@ def plot_graph(x, y, title, xlabel, ylabel, legend):
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    if legend == "FFT" :
-        plt.axvline(x=x, color='r', linestyle='--')
     plt.legend()
+    if legend == "FFT":
+        max_y = np.max(y)
+        max_x = x[np.argmax(y)]
+        plt.annotate(f'{max_x:.2f} THz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
+                    arrowprops=dict(facecolor='black', shrink=0.05),
+                    horizontalalignment='center')
     plt.grid(True)
     plt.show()
 
@@ -96,6 +100,12 @@ def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel):
     plt.ylabel(ylabel)
     plt.xlim(xlim)
     plt.ylim(ylim)
+    if title == "Zoom sur le spectre de fréquence":
+        max_y = np.max(y)
+        max_x = x[np.argmax(y)]
+        plt.annotate(f'{max_x:.2f} THz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
+                    arrowprops=dict(facecolor='black', shrink=0.05),
+                    horizontalalignment='center')
     plt.grid(True)
     plt.show()
 
