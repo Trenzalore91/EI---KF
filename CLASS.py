@@ -90,9 +90,9 @@ def plot_graph(x, y, title, xlabel, ylabel, legend):
         plt.annotate(f'{max_x:.2f} THz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
                     horizontalalignment='center')
-        plt.annotate(f'319 THz', xy=(319, max_y), xytext=(319, max_y + 0.1*max_y),
+        """plt.annotate(f'319 THz', xy=(319, max_y), xytext=(319, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
-                    horizontalalignment='center')
+                    horizontalalignment='center')"""
     plt.grid(True)
     plt.show()
 
@@ -109,9 +109,9 @@ def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel):
         plt.annotate(f'{max_x:.2f} THz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
                     horizontalalignment='center')
-        plt.annotate(f'319 THz', xy=(319, max_y), xytext=(319, max_y + 0.1*max_y),
+        """plt.annotate(f'319 THz', xy=(319, max_y), xytext=(319, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
-                    horizontalalignment='center')
+                    horizontalalignment='center')"""
     plt.grid(True)
     plt.show()
 
