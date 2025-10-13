@@ -87,7 +87,7 @@ def plot_graph(x, y, title, xlabel, ylabel, legend):
     if legend == "FFT":
         max_y = np.max(y)
         max_x = x[np.argmax(y)]
-        plt.annotate(f'{max_x:.2f} THz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
+        plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
                     horizontalalignment='center')
     plt.grid(True)
@@ -103,7 +103,7 @@ def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel):
     if title == "Zoom sur le spectre de fréquence":
         max_y = np.max(y)
         max_x = x[np.argmax(y)]
-        plt.annotate(f'{max_x:.2f} THz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
+        plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
                     horizontalalignment='center')
     plt.grid(True)
@@ -135,7 +135,7 @@ def Bode_Diagram(fc, gain, titre, ord_graph_bode_gain, abs_graph_bode_phase, ord
     plt.title(titre)
     plt.ylabel(ord_graph_bode_gain)
     plt.grid(which='both', linestyle='--')
-    plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' THz')
+    plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
     plt.axhline(y=-3, color='g', linestyle='--', label='-3 dB')
     plt.legend()
     
@@ -144,7 +144,7 @@ def Bode_Diagram(fc, gain, titre, ord_graph_bode_gain, abs_graph_bode_phase, ord
     plt.xlabel(abs_graph_bode_phase)
     plt.ylabel(ord_graph_bode_phase)
     plt.grid(which='both', linestyle='--')
-    plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' THz')
+    plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
     plt.axhline(y=-45, color='g', linestyle='--', label='-45 °')
     plt.legend()
 
@@ -159,8 +159,8 @@ def Calc_retard(Signal_Pur, Signal_a_comparer, Freq_Signal_Pur, dt, Titre_Signal
     correlation = correlate(Signal_Pur, Signal_a_comparer, mode='full')
     lags = np.arange(-len(Signal_a_comparer) + 1, len(Signal_Pur))
     idx = np.argmax(correlation)
-    delay_samples = lags[idx]
-    delay_sec = delay_samples = lags[idx] * dt
+    #delay_samples = lags[idx]
+    delay_sec = lags[idx] * dt #delay_samples = lags[idx] * dt
     phase_rad = 2 * np.pi * Freq_Signal_Pur * delay_sec
     phase_deg = np.degrees(phase_rad)
     phase_deg = ((phase_deg + 180)%360)-180
