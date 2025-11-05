@@ -145,13 +145,14 @@ def plot_hist_gaussienne(gaussian_ns, std_dev, abs_graph, abs_graph_temp, ord_gr
     plt.tight_layout()
     plt.show()
 
-def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
+def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel, signal_label, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
     plt.plot(x, y)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.xlim(xlim)
     plt.ylim(ylim)
+    label = signal_label
     if y2 is not None:
         plt.plot(x, y2, label=legend2, color=y2color)
         plt.legend()
@@ -245,7 +246,6 @@ def csv_export(File_Name, Abs_Graph, Signal_In, Signal_Ns, Signal_Filt, Signal_K
         writer.writerow(['Time (s)', 'Signal d\entrée', 'Signal Bruité', 'Signal filtré par le capteur', 'Signal filtré par Kalman'])
         for t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman in zip(Abs_Graph, Signal_In, Signal_Ns, Signal_Filt, Signal_KF):
             writer.writerow([t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman])
-
     print("Exportation des données terminée dans '", File_Name, "'.")
 
 def Calc_Stable_Gain_KF(KF_Gains, dt, Filtre_fc):
