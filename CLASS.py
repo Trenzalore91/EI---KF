@@ -1,11 +1,11 @@
 from math import *
 from scipy.signal import *
 from scipy.fft import fft, fftfreq
-from pykalman import KalmanFilter as pyKalmanFilter
 from filterpy.kalman import KalmanFilter
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm #pour réaliser la loi normale (seulement en test, devra être enlevé)
+import csv
 
 class Signal_Original:
     def __init__(self, Signal_Type, Amplitude, Frequence, Durée, Fs, Abscisse_Graph):
@@ -48,6 +48,18 @@ class SignalFilter:
         y = self.gain * lfilter(b, a, self.signal)
         return y
     
+    def Somme_Filtre(self, Liste_Filtre, Signal_Bruité, Freq_Sample, W_Noise_STD, Signal_Entree):
+        Somme_Filtre=0
+        for i in range(len(Liste_Filtre)):
+            Filtre_fc = Liste_Filtre[i][1]
+            Filtre_Ordre = Liste_Filtre[i][2]
+            Filtre_type = Liste_Filtre[i][3]
+            Filtre_gain = Liste_Filtre[i][4]
+            NewFiltre = SignalFilter(Signal_Bruité, Filtre_type, Filtre_gain, Filtre_fc, Filtre_Ordre, Freq_Sample, W_Noise_STD, Signal_Entree)
+            NewFiltre.Filtre_passe_bas()
+            Somme_Filtre += NewFiltre.Filtre_passe_bas()
+        return Somme_Filtre
+    
     def Filtre_kalman(self, Sortie_Filtre, R_Kalman, P_Kalman, X_Kalman):
         tau = 1 / (2 * pi * self.fc)
         Kalman_A = exp(-(self.fs*1e-12)/tau)
@@ -78,7 +90,7 @@ class SignalFilter:
         
         return np.array(filtered), np.array(kalman_gains)
 
-def plot_graph(x, y, title, xlabel, ylabel, legend):
+def plot_graph(x, y, title, xlabel, ylabel, legend, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
     plt.plot(x, y, label=legend)
     plt.title(title)
     plt.xlabel(xlabel)
@@ -90,16 +102,62 @@ def plot_graph(x, y, title, xlabel, ylabel, legend):
         plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
                     horizontalalignment='center')
+    if y2 is not None:
+        plt.plot(x, y2, label=legend2, color=y2color)
+        plt.legend()
+    if y3 is not None:
+        plt.plot(x, y3, label=legend3, color=y3color)
+        plt.legend()
     plt.grid(True)
     plt.show()
 
-def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel):
+def plot_hist_gaussienne(gaussian_ns, std_dev, abs_graph, abs_graph_temp, ord_graph_temp, abs_graph_Gauss, ord_graph_Gauss):
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(abs_graph, gaussian_ns)
+    plt.title('Bruit Blanc Gaussien')
+    plt.xlabel(abs_graph_temp)
+    plt.ylabel(ord_graph_temp)
+
+    plt.subplot(1, 2, 2)
+    count, bins, ignored = plt.hist(gaussian_ns, bins=1000, density=True, alpha=0.5, color='g', label='Histogramme')
+
+    mu, std = norm.fit(gaussian_ns)
+
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = norm.pdf(x, mu, std)
+    plt.plot(x, p, 'k', linewidth=2, label='Gaussienne théorique')
+
+    x_position1 = -3*std_dev
+    x_position2 = 3*std_dev
+
+    plt.axvline(x=x_position1, color='orange', linestyle='dashed', linewidth=1, label=f'Ligne 1 à -3 sigma: {x_position1:.2f}')
+    plt.axvline(x=x_position2, color='orange', linestyle='dashed', linewidth=1, label=f'Ligne 2 à 3 sigma: {x_position2:.2f}')
+
+
+    plt.title('Distribution de probabilité')
+    plt.xlabel(abs_graph_Gauss)
+    plt.ylabel(ord_graph_Gauss)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
     plt.plot(x, y)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.xlim(xlim)
     plt.ylim(ylim)
+    if y2 is not None:
+        plt.plot(x, y2, label=legend2, color=y2color)
+        plt.legend()
+    if y3 is not None:
+        plt.plot(x, y3, label=legend3, color=y3color)
+        plt.legend()
     if title == "Zoom sur le spectre de fréquence":
         max_y = np.max(y)
         max_x = x[np.argmax(y)]
@@ -119,37 +177,42 @@ def FFT_Signal(signal, fs, xlimit, abs_graph_FFT, ord_graph_FFT):
     if xlimit is not None:
         zoom_graph(positive_frequencies, amplitudes, (0, xlimit), (0, max(amplitudes)+(0.1 * max(amplitudes))), "Zoom sur le spectre de fréquence", abs_graph_FFT, ord_graph_FFT)
 
-def Bode_Diagram(fc, gain, titre, ord_graph_bode_gain, abs_graph_bode_phase, ord_graph_bode_phase):
-    wc = 2 * np.pi * fc 
-    num = [gain * wc]
-    den = [1, wc]
+def Bode_Diagram(Liste_Filtre, ord_graph_bode_gain, abs_graph_bode_phase, ord_graph_bode_phase):
+    for i in range(len(Liste_Filtre)):
+        id = Liste_Filtre[i][0]
+        fc = Liste_Filtre[i][1]
+        gain = Liste_Filtre[i][4]
 
-    system = TransferFunction(num, den)
+        wc = 2 * np.pi * fc 
+        num = [gain * wc]
+        den = [1, wc]
 
-    w, mag, phase = bode(system)
+        system = TransferFunction(num, den)
 
-    plt.figure(figsize=(10, 6))
+        w, mag, phase = bode(system)
 
-    plt.subplot(2, 1, 1)
-    plt.semilogx(w/(2*np.pi), mag)
-    plt.title(titre)
-    plt.ylabel(ord_graph_bode_gain)
-    plt.grid(which='both', linestyle='--')
-    plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
-    plt.axhline(y=-3, color='g', linestyle='--', label='-3 dB')
-    plt.legend()
-    
-    plt.subplot(2, 1, 2)
-    plt.semilogx(w/(2*np.pi), phase)
-    plt.xlabel(abs_graph_bode_phase)
-    plt.ylabel(ord_graph_bode_phase)
-    plt.grid(which='both', linestyle='--')
-    plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
-    plt.axhline(y=-45, color='g', linestyle='--', label='-45 °')
-    plt.legend()
+        plt.figure(figsize=(10, 6))
 
-    plt.tight_layout()
-    plt.show()
+        plt.subplot(2, 1, 1)
+        plt.semilogx(w/(2*np.pi), mag)
+        plt.title('Diagramme de Bode du capteur ' + str(id))
+        plt.ylabel(ord_graph_bode_gain)
+        plt.grid(which='both', linestyle='--')
+        plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
+        plt.axhline(y=-3, color='g', linestyle='--', label='-3 dB')
+        plt.legend()
+        
+        plt.subplot(2, 1, 2)
+        plt.semilogx(w/(2*np.pi), phase)
+        plt.xlabel(abs_graph_bode_phase)
+        plt.ylabel(ord_graph_bode_phase)
+        plt.grid(which='both', linestyle='--')
+        plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
+        plt.axhline(y=-45, color='g', linestyle='--', label='-45 °')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
 
 def Moyenne_Glissante(signal, window_size):
     cumsum = np.cumsum(np.insert(signal, 0, 0))
@@ -176,3 +239,24 @@ def Calc_SNR(Signal_pur_SNR, Signal_Bruité_SNR, Unité_SNR, Titre_SNR):
     SNR_Signal = 20 * log10(Signal_RMS / Bruité_RMS)
     print(f"SNR {Titre_SNR} : {SNR_Signal} dB")
 
+def csv_export(File_Name, Abs_Graph, Signal_In, Signal_Ns, Signal_Filt, Signal_KF):
+    with open(File_Name, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Time (s)', 'Signal d\entrée', 'Signal Bruité', 'Signal filtré par le capteur', 'Signal filtré par Kalman'])
+        for t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman in zip(Abs_Graph, Signal_In, Signal_Ns, Signal_Filt, Signal_KF):
+            writer.writerow([t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman])
+
+    print("Exportation des données terminée dans '", File_Name, "'.")
+
+def Calc_Stable_Gain_KF(KF_Gains, dt, Filtre_fc):
+    for i in range(len(KF_Gains)):
+        if KF_Gains[i] == KF_Gains[i-1] and i != 0:
+            print("Le gain de Kalman devient stable après", i, "échantillons, soit", i*dt, "secondes.")
+            print("Valeur stable du gain de Kalman :", KF_Gains[i], "V")
+            break
+
+    tau = 1/(2*pi*Filtre_fc)
+    print("Constante de temps du filtre passe bas:", tau, "s")
+
+    num_tau = (i*dt)/tau
+    print("Le gain de Kalman devient stable après", num_tau, "constantes de temps.")
