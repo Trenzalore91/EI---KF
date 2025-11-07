@@ -8,110 +8,118 @@ from scipy.stats import norm #pour réaliser la loi normale (seulement en test, 
 import csv
 
 class Signal_Original:
-    def __init__(self, Signal_Type, Amplitude, Frequence, Durée, Fs, Abscisse_Graph):
-        self.Signal_Type = Signal_Type.lower()
-        if self.Signal_Type not in ['sinus', 'carré']:
+    def __init__(self, signal_type, amplitude, frequence, durée, fs, abscisse_graph):
+        """Initialisation de la classe Signal_Original."""
+        self.signal_type = signal_type.lower()
+        if self.signal_type not in ['sinus', 'carré']:
             raise ValueError("Type de signal non reconnu. Choisissez 'sinus' ou 'carré'.")
-        self.Amplitude = Amplitude
-        self.Frequence = Frequence
-        self.Durée = Durée
-        self.Fs = Fs
-        self.Abscisse_Graph = Abscisse_Graph
+        self.amplitude = amplitude
+        self.frequence = frequence
+        self.durée = durée
+        self.fs = fs #frequence d'"échantillonnage"
+        self.abscisse_graph = abscisse_graph
     
     def GenerationSignal(self):
-        if (self.Signal_Type == 'sinus'):
-            signal = self.Amplitude * np.sin(2 * np.pi * self.Frequence * self.Abscisse_Graph)
-        elif (self.Signal_Type == 'carré'):
-            signal = self.Amplitude * square(2 * np.pi * self.Frequence * self.Abscisse_Graph)
-        return signal
+        """Génération du signal en fonction des paramètres donnés."""
+        if (self.signal_type == 'sinus'):
+            signal = self.amplitude * np.sin(2 * np.pi * self.frequence * self.abscisse_graph)
+        elif (self.signal_type == 'carré'):
+            signal = self.amplitude * square(2 * np.pi * self.frequence * self.abscisse_graph)
+        return signal   #retourne le signal généré = signal d'entrée
     
 class SignalFilter:
-    def __init__(self, signal, filter_type, gain, fc, ordre, fs, Noise_STD, Entrée_Pure):
+    """Classe pour appliquer des filtres à un signal donné."""
+    def __init__(self, signal, filter_type, gain, fc, ordre, fs, noise_STD, entrée_pure):
         self.signal = signal
         self.filter_type = filter_type.lower()
         self.gain = gain
         self.ordre = ordre
-        self.fc = fc
-        self.fs = fs
-        #self.Q = Q
-        #self.P = P
-        self.Noise_STD = Noise_STD
-        self.Entrée_Pure = Entrée_Pure
+        self.fc = fc    #fréquence de coupure
+        self.fs = fs    #fréquence d'échantillonnage
+        self.noise_STD = noise_STD
+        self.entrée_pure = entrée_pure
 
         if self.filter_type not in ['passe-bas', 'kalman']:
             raise ValueError("Type de filtre non reconnu. Choisissez 'passe-bas' ou 'kalman'.")
 
-    def Filtre_passe_bas(self):
-        freq_nyquist = 0.5 * self.fs
-        normal_freq_coupure = self.fc / freq_nyquist
-        b, a = butter(self.ordre, normal_freq_coupure, btype='low', analog=False)
-        y = self.gain * lfilter(b, a, self.signal)
-        return y
+    def Sortie_Filtre_passe_bas(self):
+        """Application d'un filtre passe-bas au signal."""
+        freq_nyquist = 0.5 * self.fs    #calcul de la fréquence de Nyquist
+        normal_freq_coupure = self.fc / freq_nyquist    #fréquence de coupure normalisée
+        b, a = butter(self.ordre, normal_freq_coupure, btype='low', analog=False)   #conception du filtre passe-bas
+        sortie_passe_bas = self.gain * lfilter(b, a, self.signal)  #application du filtre au signal
+        return sortie_passe_bas
     
-    def Somme_Filtre(self, Liste_Filtre, Signal_Bruité, Freq_Sample, W_Noise_STD, Signal_Entree):
-        Somme_Filtre=0
-        for i in range(len(Liste_Filtre)):
-            Filtre_fc = Liste_Filtre[i][1]
-            Filtre_Ordre = Liste_Filtre[i][2]
-            Filtre_type = Liste_Filtre[i][3]
-            Filtre_gain = Liste_Filtre[i][4]
-            NewFiltre = SignalFilter(Signal_Bruité, Filtre_type, Filtre_gain, Filtre_fc, Filtre_Ordre, Freq_Sample, W_Noise_STD, Signal_Entree)
+    def Sortie_Somme_Filtre(self, liste_filtre, signal_bruité, freq_sample, w_noise_STD, signal_entree):
+        """Application de plusieurs filtres et sommation des résultats."""
+        Sortie_Filtres=0
+        for i in range(len(liste_filtre)):
+            filtre_fc = liste_filtre[i][1]
+            filtre_ordre = liste_filtre[i][2]
+            filtre_type = liste_filtre[i][3]
+            filtre_gain = liste_filtre[i][4]
+            NewFiltre = SignalFilter(signal_bruité, filtre_type, filtre_gain, filtre_fc, filtre_ordre, freq_sample, w_noise_STD, signal_entree)
             NewFiltre.Filtre_passe_bas()
-            Somme_Filtre += NewFiltre.Filtre_passe_bas()
-        return Somme_Filtre
+            Sortie_Filtres += NewFiltre.Filtre_passe_bas()
+        return Sortie_Filtres
     
-    def Filtre_kalman(self, Sortie_Filtre, R_Kalman, P_Kalman, X_Kalman):
-        tau = 1 / (2 * pi * self.fc)
-        Kalman_A = exp(-(self.fs*1e-12)/tau)
-        Kalman_B = self.gain*(1-exp(-(self.fs*1e-12)/tau))
-        Kalman_C = 1.
+    def Filtre_kalman(self, sortie_filtre, r_kalman, p_kalman, x_kalman):
+        """Application d'un filtre de Kalman au signal."""
+        tau = 1 / (2 * pi * self.fc)    #constante de temps du filtre passe-bas
+        kalman_a = exp(-(self.fs*1e-12)/tau)    #calcul du scalaire transition d'état
+        kalman_b = self.gain*(1-exp(-(self.fs*1e-12)/tau))  #calcul du scalaire de contrôle
+        kalman_c = 1.   #calcul du scalaire d'observation
 
-        Kalman_Q0 = self.Noise_STD**2
-        Kalman_R0 = R_Kalman
-        Kalman_P0 = P_Kalman
-        Kalman_x0 = X_Kalman
+        kalman_q0 = self.noise_STD**2   #variance du bruit de processus
+        kalman_r0 = r_kalman    #variance du bruit de mesure
+        kalman_p0 = p_kalman    #estimation initiale de l'erreur de covariance
+        kalman_x0 = x_kalman    #estimation initiale de l'état
 
-        kf = KalmanFilter(dim_x=1, dim_z=1)
-        kf.F = np.array([[Kalman_A]])
-        kf.H = np.array([[Kalman_C]])
-        kf.B = np.array([[Kalman_B]])
-        kf.Q = np.array([[Kalman_Q0]])
-        kf.R = np.array([[Kalman_R0]])
-        kf.P = np.array([[Kalman_P0]])
-        kf.x = np.array([[Kalman_x0]])
+        kf = KalmanFilter(dim_x=1, dim_z=1)  #initialisation du filtre de Kalman
+        kf.F = np.array([[kalman_a]])   #matrice de transition d'état
+        kf.H = np.array([[kalman_c]])   #matrice d'observation
+        kf.B = np.array([[kalman_b]])   #matrice de contrôle
+        kf.Q = np.array([[kalman_q0]])  #matrice de covariance du bruit de processus
+        kf.R = np.array([[kalman_r0]])  #matrice de covariance du bruit de mesure
+        kf.P = np.array([[kalman_p0]])  #matrice de covariance de l'erreur
+        kf.x = np.array([[kalman_x0]])  #état initial
 
-        filtered = []
-        kalman_gains = []
-        for z, u_k in zip(Sortie_Filtre, self.Entrée_Pure):
-            kf.predict(u=u_k)
-            kf.update(z)
-            kalman_gains.append(kf.K[0, 0])
-            filtered.append(kf.x[0, 0])
+        filtered = []   #liste pour stocker les valeurs filtrées
+        kalman_gains = []   #liste pour stocker les gains de Kalman
+        for sortie_kalman, u_k in zip(sortie_filtre, self.entrée_pure): #itération sur les mesures et les entrées de contrôle
+            kf.predict(u=u_k)   #étape de prédiction
+            kf.update(sortie_kalman)    #étape de mise à jour
+            kalman_gains.append(kf.K[0, 0]) #stockage du gain de Kalman
+            filtered.append(kf.x[0, 0]) #stockage de la valeur filtrée
         
-        return np.array(filtered), np.array(kalman_gains)
+        return np.array(filtered), np.array(kalman_gains)   #retourne le signal filtré et les gains de Kalman
 
 def plot_graph(x, y, title, xlabel, ylabel, legend, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
+    """Fonction pour tracer des graphiques avec des options supplémentaires."""
     plt.plot(x, y, label=legend)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend()
-    if legend == "FFT":
+    if legend == "FFT": #annotation du maximum pour le graphique FFT
         max_y = np.max(y)
         max_x = x[np.argmax(y)]
         plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                     arrowprops=dict(facecolor='black', shrink=0.05),
                     horizontalalignment='center')
-    if y2 is not None:
+        
+    if y2 is not None:  #ajout d'une deuxième courbe si nécessaire
         plt.plot(x, y2, label=legend2, color=y2color)
         plt.legend()
-    if y3 is not None:
+
+    if y3 is not None:  #ajout d'une troisième courbe si nécessaire
         plt.plot(x, y3, label=legend3, color=y3color)
         plt.legend()
     plt.grid(True)
     plt.show()
 
 def plot_hist_gaussienne(gaussian_ns, std_dev, abs_graph, abs_graph_temp, ord_graph_temp, abs_graph_Gauss, ord_graph_Gauss):
+    """Fonction pour tracer l'histogramme d'un signal bruité et la gaussienne théorique."""
     plt.figure(figsize=(12, 6))
 
     plt.subplot(1, 2, 1)
@@ -121,13 +129,13 @@ def plot_hist_gaussienne(gaussian_ns, std_dev, abs_graph, abs_graph_temp, ord_gr
     plt.ylabel(ord_graph_temp)
 
     plt.subplot(1, 2, 2)
-    count, bins, ignored = plt.hist(gaussian_ns, bins=1000, density=True, alpha=0.5, color='g', label='Histogramme')
+    count, bins, ignored = plt.hist(gaussian_ns, bins=1000, density=True, alpha=0.5, color='g', label='Histogramme')    #tracé de l'histogramme
 
-    mu, std = norm.fit(gaussian_ns)
+    mu, std = norm.fit(gaussian_ns)  #calcul de la moyenne et de l'écart-type
 
-    xmin, xmax = plt.xlim()
-    x = np.linspace(xmin, xmax, 100)
-    p = norm.pdf(x, mu, std)
+    xmin, xmax = plt.xlim() #définition des limites de l'axe x
+    x = np.linspace(xmin, xmax, 100)    #création d'un vecteur x pour la gaussienne théorique
+    p = norm.pdf(x, mu, std)    #calcul de la gaussienne théorique
     plt.plot(x, p, 'k', linewidth=2, label='Gaussienne théorique')
 
     x_position1 = -3*std_dev
@@ -146,20 +154,23 @@ def plot_hist_gaussienne(gaussian_ns, std_dev, abs_graph, abs_graph_temp, ord_gr
     plt.show()
 
 def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel, signal_label, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
-    plt.plot(x, y)
+    """Fonction pour tracer des graphiques zoomés avec des options supplémentaires."""
+    plt.plot(x, y, label = signal_label)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.xlim(xlim)
     plt.ylim(ylim)
-    label = signal_label
-    if y2 is not None:
+
+    if y2 is not None:  #ajout d'une deuxième courbe si nécessaire
         plt.plot(x, y2, label=legend2, color=y2color)
         plt.legend()
-    if y3 is not None:
+
+    if y3 is not None:  #ajout d'une troisième courbe si nécessaire
         plt.plot(x, y3, label=legend3, color=y3color)
         plt.legend()
-    if title == "Zoom sur le spectre de fréquence":
+
+    if title == "Zoom sur le spectre de fréquence": #annotation du maximum pour le graphique FFT zoomé
         max_y = np.max(y)
         max_x = x[np.argmax(y)]
         plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
@@ -169,16 +180,24 @@ def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel, signal_label, y2=None, l
     plt.show()
 
 def FFT_Signal(signal, fs, xlimit, abs_graph_FFT, ord_graph_FFT):
-    n = len(signal)
-    signal_fft = fft(signal)
-    frequencies = fftfreq(n, 1/fs)
-    positive_frequencies = frequencies[:n // 2]
-    amplitudes = 2.0 / n * np.abs(signal_fft[:n // 2])
-    plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT")
-    if xlimit is not None:
-        zoom_graph(positive_frequencies, amplitudes, (0, xlimit), (0, max(amplitudes)+(0.1 * max(amplitudes))), "Zoom sur le spectre de fréquence", abs_graph_FFT, ord_graph_FFT)
+    """Fonction pour calculer et tracer la FFT d'un signal."""
+    n = len(signal)  #nombre d'échantillons
+    signal_fft = fft(signal)    #calcul de la FFT
+    frequencies = fftfreq(n, 1/fs)  #calcul des fréquences associées
+    positive_frequencies = frequencies[:n // 2] #fréquences positives
+    amplitudes = 2.0 / n * np.abs(signal_fft[:n // 2])  #amplitudes correspondantes
+    plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT") #tracé du spectre de fréquence
+    if xlimit is not None:  #zoom sur une partie du spectre si nécessaire
+        zoom_graph(positive_frequencies, 
+                   amplitudes, 
+                   (0, xlimit), 
+                   (0, max(amplitudes)+(0.1 * max(amplitudes))), 
+                   "Zoom sur le spectre de fréquence", 
+                   abs_graph_FFT, ord_graph_FFT, 
+                   "FFT")
 
 def Bode_Diagram(Liste_Filtre, ord_graph_bode_gain, abs_graph_bode_phase, ord_graph_bode_phase):
+    """Fonction pour tracer le diagramme de Bode de plusieurs filtres."""
     for i in range(len(Liste_Filtre)):
         id = Liste_Filtre[i][0]
         fc = Liste_Filtre[i][1]
@@ -216,47 +235,55 @@ def Bode_Diagram(Liste_Filtre, ord_graph_bode_gain, abs_graph_bode_phase, ord_gr
         plt.show()
 
 def Moyenne_Glissante(signal, window_size):
-    cumsum = np.cumsum(np.insert(signal, 0, 0))
-    return (cumsum[window_size:] - cumsum[:-window_size]) / window_size
+    """Fonction pour appliquer une moyenne glissante à un signal."""
+    cumsum = np.cumsum(np.insert(signal, 0, 0)) #calcul de la somme cumulée
+    return (cumsum[window_size:] - cumsum[:-window_size]) / window_size #retourne le signal moyenné
 
-def Calc_retard(Signal_Pur, Signal_a_comparer, Freq_Signal_Pur, dt, Titre_Signal_a_comparer):
-    correlation = correlate(Signal_Pur, Signal_a_comparer, mode='full')
-    lags = np.arange(-len(Signal_a_comparer) + 1, len(Signal_Pur))
+def Calc_retard(signal_pur, signal_a_comparer, freq_signal_pur, dt, titre_signal_a_comparer):
+    """Fonction pour appliquer un calcul de retard entre deux signaux"""
+    correlation = correlate(signal_pur, signal_a_comparer, mode='full') #synchronise les signaux
+    lags = np.arange(-len(signal_a_comparer) + 1, len(signal_pur))
     idx = np.argmax(correlation)
     #delay_samples = lags[idx]
     delay_sec = lags[idx] * dt #delay_samples = lags[idx] * dt
-    phase_rad = 2 * np.pi * Freq_Signal_Pur * delay_sec
+    phase_rad = 2 * np.pi * freq_signal_pur * delay_sec
     phase_deg = np.degrees(phase_rad)
     phase_deg = ((phase_deg + 180)%360)-180
-    print(f"Le retard temporel du signal pur avec {Titre_Signal_a_comparer} est de {delay_sec} s.")
-    print(f"Le retard degré du signal pur avec {Titre_Signal_a_comparer} est de {phase_deg} °.")
+    print(f"Le retard temporel du signal pur avec {titre_signal_a_comparer} est de {delay_sec} s.")
+    print(f"Le retard degré du signal pur avec {titre_signal_a_comparer} est de {phase_deg} °.")
 
-def Calc_SNR(Signal_pur_SNR, Signal_Bruité_SNR, Unité_SNR, Titre_SNR):
-    Signal_RMS = np.sqrt(np.mean(Signal_pur_SNR**2))
-    Bruité_RMS = np.sqrt(np.mean(Signal_Bruité_SNR**2))
-    print(f"RMS Signal d'entrée : {Signal_RMS} {Unité_SNR}")
-    print(f"RMS Signal bruité : {Bruité_RMS} {Unité_SNR}")
+def Calc_SNR(signal_pur_SNR, signal_bruité_SNR, unité_SNR, titre_SNR):
+    """Fonction pour appliquer un calcul de SNR sur les deux signaux"""
+    signal_RMS = np.sqrt(np.mean(signal_pur_SNR**2))
+    bruité_RMS = np.sqrt(np.mean(signal_bruité_SNR**2))
+    print(f"RMS Signal d'entrée : {signal_RMS} {unité_SNR}")
+    print(f"RMS Signal bruité : {bruité_RMS} {titre_SNR}")
     
-    SNR_Signal = 20 * log10(Signal_RMS / Bruité_RMS)
-    print(f"SNR {Titre_SNR} : {SNR_Signal} dB")
+    SNR_Signal = 20 * log10(signal_RMS / bruité_RMS)
+    print(f"SNR {titre_SNR} : {SNR_Signal} dB")
 
-def csv_export(File_Name, Abs_Graph, Signal_In, Signal_Ns, Signal_Filt, Signal_KF):
-    with open(File_Name, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Time (s)', 'Signal d\entrée', 'Signal Bruité', 'Signal filtré par le capteur', 'Signal filtré par Kalman'])
-        for t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman in zip(Abs_Graph, Signal_In, Signal_Ns, Signal_Filt, Signal_KF):
-            writer.writerow([t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman])
-    print("Exportation des données terminée dans '", File_Name, "'.")
+def CSV_Export(file_name, abs_graph, signal_in, signal_ns, signal_filt, signal_KF):
+    """Fonction pour exporter les donner dans un fichier .csv"""
+    with open(file_name, mode='w', newline='') as file: #Ouvre le fichier, si n'existe pas, le créé
+        writer = csv.writer(file) 
+        writer.writerow(['Time (s)', 'Signal d\entrée', 'Signal Bruité', 'Signal filtré par le capteur', 'Signal filtré par Kalman'])   #écriture de l'en-tête
+        for t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman in zip(abs_graph, signal_in, signal_ns, signal_filt, signal_KF):
+            writer.writerow([t, s_in, s_bruite, s_filtre_capteur, s_filtre_kalman]) #écriture des données ligne par ligne
+    print("Exportation des données terminée dans '", file_name, "'.")
 
-def Calc_Stable_Gain_KF(KF_Gains, dt, Filtre_fc):
-    for i in range(len(KF_Gains)):
-        if KF_Gains[i] == KF_Gains[i-1] and i != 0:
+def Calc_Stable_Gain_KF(KF_gains, dt, filtre_fc):
+    """Fonction pour calculer le gain stable du filtre de Kalman et le nombre de constantes de temps nécessaires."""
+    if len(KF_gains) == 0:
+        print("La liste des gains de Kalman est vide.")
+        return
+    for i in range(len(KF_gains)): #attention bug si KF_Gains = 0
+        if KF_gains[i] == KF_gains[i-1] and i != 0: #vérifie la stabilité du gain de Kalman
             print("Le gain de Kalman devient stable après", i, "échantillons, soit", i*dt, "secondes.")
-            print("Valeur stable du gain de Kalman :", KF_Gains[i], "V")
+            print("Valeur stable du gain de Kalman :", KF_gains[i], "V")
             break
 
-    tau = 1/(2*pi*Filtre_fc)
+    tau = 1/(2*pi*filtre_fc)    #calcul de la constante de temps du filtre passe-bas
     print("Constante de temps du filtre passe bas:", tau, "s")
 
-    num_tau = (i*dt)/tau
+    num_tau = (i*dt)/tau    #calcul du nombre de constantes de temps nécessaires pour atteindre la stabilité
     print("Le gain de Kalman devient stable après", num_tau, "constantes de temps.")
