@@ -39,7 +39,8 @@ class SignalFilter:
                  signal, 
                  filter_type, 
                  gain, 
-                 fc, 
+                 fc,
+                 ordre, 
                  fs, 
                  noise_STD, 
                  entrée_pure):
@@ -47,6 +48,7 @@ class SignalFilter:
         self.filter_type = filter_type.lower()  #type de filtre: 'passe-bas' ou 'kalman'
         self.gain = gain    #gain du filtre passe-bas
         self.fc = fc    #fréquence de coupure passe-bas
+        self.ordre = ordre    #ordre du filtre passe-bas
         self.fs = fs    #fréquence d'échantillonnage
         self.noise_STD = noise_STD  #écart-type du bruit
         self.entrée_pure = entrée_pure  #signal d'entrée pur pour le filtre de Kalman
@@ -54,8 +56,7 @@ class SignalFilter:
         if self.filter_type not in ['passe-bas', 'kalman']: #vérification du type de filtre
             raise ValueError("Type de filtre non reconnu. Choisissez 'passe-bas' ou 'kalman'.") #erreur si type non reconnu
 
-    def Sortie_Filtre_passe_bas(self, 
-                                filtre_liste):
+    def Sortie_Filtre_passe_bas(self):
         """Application d'un filtre passe-bas au signal."""
         freq_nyquist = 0.5 * self.fs    #calcul de la fréquence de Nyquist
         normal_freq_coupure = self.fc / freq_nyquist    #fréquence de coupure normalisée
@@ -70,8 +71,8 @@ class SignalFilter:
                       x_kalman):
         """Application d'un filtre de Kalman au signal."""
         tau = 1 / (2 * pi * self.fc)    #constante de temps du filtre passe-bas
-        kalman_a = exp(-(self.fs*1e-12)/tau)    #calcul du scalaire transition d'état
-        kalman_b = self.gain*(1-exp(-(self.fs*1e-12)/tau))  #calcul du scalaire de contrôle
+        kalman_a = exp(-(1/self.fs)/tau)    #calcul du scalaire transition d'état
+        kalman_b = self.gain*(1-exp(-(1/self.fs)/tau))  #calcul du scalaire de contrôle
         kalman_c = 1.   #calcul du scalaire d'observation
 
         kalman_q0 = self.noise_STD**2   #variance du bruit de processus
@@ -130,20 +131,6 @@ class Graphiques:
             plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
                         arrowprops=dict(facecolor='black', shrink=0.05),
                         horizontalalignment='center')
-            n = len(signal)  #nombre d'échantillons
-            signal_fft = fft(signal)    #calcul de la FFT
-            frequencies = fftfreq(n, 1/fs)  #calcul des fréquences associées
-            positive_frequencies = frequencies[:n // 2] #fréquences positives
-            amplitudes = 2.0 / n * np.abs(signal_fft[:n // 2])  #amplitudes correspondantes
-            plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT") #tracé du spectre de fréquence
-            if xlimit is not None:  #zoom sur une partie du spectre si nécessaire
-                zoom_graph(positive_frequencies, 
-                        amplitudes, 
-                        (0, xlimit), 
-                        (0, max(amplitudes)+(0.1 * max(amplitudes))), 
-                        "Zoom sur le spectre de fréquence", 
-                        abs_graph_FFT, ord_graph_FFT, 
-                        "FFT")
         
         if xlim is not None:
             plt.xlim(xlim)
@@ -203,33 +190,8 @@ class Graphiques:
         plt.tight_layout()
         plt.show()
 
-    # def zoom_graph(x, y, xlim, ylim, title, xlabel, ylabel, signal_label, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
-    #     """Fonction pour tracer des graphiques zoomés avec des options supplémentaires."""
-    #     plt.plot(x, y, label = signal_label)
-    #     plt.title(title)
-    #     plt.xlabel(xlabel)
-    #     plt.ylabel(ylabel)
-    #     plt.xlim(xlim)
-    #     plt.ylim(ylim)
-
-    #     if y2 is not None:  #ajout d'une deuxième courbe si nécessaire
-    #         plt.plot(x, y2, label=legend2, color=y2color)
-    #         plt.legend()
-
-    #     if y3 is not None:  #ajout d'une troisième courbe si nécessaire
-    #         plt.plot(x, y3, label=legend3, color=y3color)
-    #         plt.legend()
-
-    #     if title == "Zoom sur le spectre de fréquence": #annotation du maximum pour le graphique FFT zoomé
-    #         max_y = np.max(y)
-    #         max_x = x[np.argmax(y)]
-    #         plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
-    #                     arrowprops=dict(facecolor='black', shrink=0.05),
-    #                     horizontalalignment='center')
-    #     plt.grid(True)
-    #     plt.show()
-
-    def FFT_Signal(signal, 
+    def FFT_Signal(self,
+                   signal,
                    fs, 
                    xlimit, 
                    abs_graph_FFT, 
@@ -240,17 +202,10 @@ class Graphiques:
         frequencies = fftfreq(n, 1/fs)  #calcul des fréquences associées
         positive_frequencies = frequencies[:n // 2] #fréquences positives
         amplitudes = 2.0 / n * np.abs(signal_fft[:n // 2])  #amplitudes correspondantes
-        plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT") #tracé du spectre de fréquence
-        if xlimit is not None:  #zoom sur une partie du spectre si nécessaire
-            zoom_graph(positive_frequencies, 
-                    amplitudes, 
-                    (0, xlimit), 
-                    (0, max(amplitudes)+(0.1 * max(amplitudes))), 
-                    "Zoom sur le spectre de fréquence", 
-                    abs_graph_FFT, ord_graph_FFT, 
-                    "FFT")
+        self.plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT", xlimit) #tracé du spectre de fréquence
 
-    def Bode_Diagram(Liste_Filtre, 
+    def Bode_Diagram(self,
+                     Liste_Filtre, 
                      ord_graph_bode_gain, 
                      abs_graph_bode_phase, 
                      ord_graph_bode_phase):
@@ -290,68 +245,6 @@ class Graphiques:
 
             plt.tight_layout()
             plt.show()
-
-
-# def plot_graph(x, y, title, xlabel, ylabel, legend, y2=None, legend2=None, y2color=None, y3=None, legend3=None, y3color=None):
-#     """Fonction pour tracer des graphiques avec des options supplémentaires."""
-#     plt.plot(x, y, label=legend)
-#     plt.title(title)
-#     plt.xlabel(xlabel)
-#     plt.ylabel(ylabel)
-#     plt.legend()
-#     if legend == "FFT": #annotation du maximum pour le graphique FFT
-#         max_y = np.max(y)
-#         max_x = x[np.argmax(y)]
-#         plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
-#                     arrowprops=dict(facecolor='black', shrink=0.05),
-#                     horizontalalignment='center')
-        
-#     if y2 is not None:  #ajout d'une deuxième courbe si nécessaire
-#         plt.plot(x, y2, label=legend2, color=y2color)
-#         plt.legend()
-
-#     if y3 is not None:  #ajout d'une troisième courbe si nécessaire
-#         plt.plot(x, y3, label=legend3, color=y3color)
-#         plt.legend()
-#     plt.grid(True)
-#     plt.show()
-
-# def plot_hist_gaussienne(gaussian_ns, std_dev, abs_graph, abs_graph_temp, ord_graph_temp, abs_graph_Gauss, ord_graph_Gauss):
-#     """Fonction pour tracer l'histogramme d'un signal bruité et la gaussienne théorique."""
-#     plt.figure(figsize=(12, 6))
-
-#     plt.subplot(1, 2, 1)
-#     plt.plot(abs_graph, gaussian_ns)
-#     plt.title('Bruit Blanc Gaussien')
-#     plt.xlabel(abs_graph_temp)
-#     plt.ylabel(ord_graph_temp)
-
-#     plt.subplot(1, 2, 2)
-#     count, bins, ignored = plt.hist(gaussian_ns, bins=1000, density=True, alpha=0.5, color='g', label='Histogramme')    #tracé de l'histogramme
-
-#     mu, std = norm.fit(gaussian_ns)  #calcul de la moyenne et de l'écart-type
-
-#     xmin, xmax = plt.xlim() #définition des limites de l'axe x
-#     x = np.linspace(xmin, xmax, 100)    #création d'un vecteur x pour la gaussienne théorique
-#     p = norm.pdf(x, mu, std)    #calcul de la gaussienne théorique
-#     plt.plot(x, p, 'k', linewidth=2, label='Gaussienne théorique')
-
-#     x_position1 = -3*std_dev
-#     x_position2 = 3*std_dev
-
-#     plt.axvline(x=x_position1, color='orange', linestyle='dashed', linewidth=1, label=f'Ligne 1 à -3 sigma: {x_position1:.2f}')
-#     plt.axvline(x=x_position2, color='orange', linestyle='dashed', linewidth=1, label=f'Ligne 2 à 3 sigma: {x_position2:.2f}')
-
-
-#     plt.title('Distribution de probabilité')
-#     plt.xlabel(abs_graph_Gauss)
-#     plt.ylabel(ord_graph_Gauss)
-#     plt.legend()
-
-#     plt.tight_layout()
-#     plt.show()
-
-
 
 def Moyenne_Glissante(signal, 
                       window_size):
