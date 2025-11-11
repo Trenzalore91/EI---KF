@@ -1,4 +1,4 @@
-from math import pi, log10, exp #importation des fonctions mathématiques nécessaires
+from math import sin, pi, log10, exp #importation des fonctions mathématiques nécessaires
 from scipy.signal import butter, lfilter, square, bode, TransferFunction, correlate #importation des fonctions de traitement du signal
 from scipy.fft import fft, fftfreq  #importation des fonctions pour la FFT
 from scipy.stats import norm    #importation des fonctions pour la distribution normale
