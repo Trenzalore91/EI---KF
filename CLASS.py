@@ -4,7 +4,8 @@ from scipy.fft import fft, fftfreq  #importation des fonctions pour la FFT
 from scipy.stats import norm    #importation des fonctions pour la distribution normale
 from filterpy.kalman import KalmanFilter    #importation de la classe KalmanFilter de la bibliothèque filterpy
 import numpy as np  #importation de la bibliothèque numpy pour les calculs numériques
-import matplotlib.pyplot as plt #importation de la bibliothèque matplotlib pour le tracé des graphi
+from matplotlib.animation import FuncAnimation, PillowWriter #importation des fonctions pour l'animation des graphiques
+import matplotlib.pyplot as plt #importation de la bibliothèque matplotlib pour le tracé des graphiques
 import csv  #importation de la bibliothèque csv pour l'export des données en csv
 
 class Signal_Original:
