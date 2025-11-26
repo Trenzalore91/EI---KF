@@ -247,6 +247,135 @@ class Graphiques:
             plt.tight_layout()
             plt.show()
 
+class Monte_Carlo:
+    """Classe pour effectuer des simulations de Monte Carlo."""
+    def __init__(self, signal_in, abs_graph, w_ns_mean, w_ns_std, capteur_out, kalman_out, n_mc):
+        self.signal_in = signal_in  #variable interne pour le signal d'entrée
+        self.abs_graph = abs_graph  #abscisse pour le graphe
+        self.w_ns_mean = w_ns_mean  #moyenne du bruit
+        self.w_ns_std = w_ns_std    #écart-type du bruit
+        self.capteur_out = capteur_out  #sortie du filtre capteur
+        self.kalman_out = kalman_out    #sortie du filtre de Kalman
+        self.n_mc = n_mc    #nombre d'itérations Monte Carlo
+    
+    def Monte_Carlo_Simu(self):
+        """Fonction pour exécuter une itération pour la méthode Monte Carlo."""
+        #Génération du signal pur
+        x_true = self.signal_in
+        
+        #Ajout du bruit
+        x_noisy = self.signal_in + np.random.normal(self.w_ns_mean, self.w_ns_std, len(x_true))
+        
+        #Filtrage capteur
+        x_sensor_filt = self.capteur_out
+        
+        #Filtre de Kalman
+        x_kf = self.kalman_out
+        
+        return x_true, x_noisy, x_sensor_filt, x_kf
+
+    def Monte_Carlo_Method(self):
+        """Fonction pour exécuter la méthode de Monte Carlo sur plusieurs simulations."""
+        x_true, x_noisy, x_sensor_filt, x_kf = self.Monte_Carlo_Simu()  #exécution d'une simulation pour obtenir la taille du signal
+        N = len(x_true) #longueur du signal
+
+        errors_noisy = np.zeros((self.n_mc, N)) #initialisation des matrices d'erreurs
+        errors_sensor_filt = np.zeros((self.n_mc, N))   #initialisation des matrices d'erreurs
+        errors_kf = np.zeros((self.n_mc, N))    #initialisation des matrices d'erreurs
+
+        rmse_noisy_per_run = np.zeros(self.n_mc)    #initialisation des RMSE par réalisation
+        rmse_sensor_filt_per_run = np.zeros(self.n_mc)  #initialisation des RMSE par réalisation
+        rmse_kf_per_run = np.zeros(self.n_mc)   #initialisation des RMSE par réalisation
+
+        # Boucle Monte Carlo
+        for k in range(self.n_mc):  #itération sur le nombre de simulations
+            x_true_k, x_noisy_k, x_sensor_filt_k, x_kf_k = self.Monte_Carlo_Simu()  #exécution d'une simulation
+            
+            #Vérification que la longueur est cohérente
+            if len(x_true_k) != N:
+                raise ValueError("Longueur du signal incohérente entre itérations")
+            
+            # Erreurs instantanées par rapport au signal pur
+            errors_noisy[k, :] = x_noisy_k - x_true_k
+            errors_sensor_filt[k, :] = x_sensor_filt_k - x_true_k
+            errors_kf[k, :] = x_kf_k - x_true_k
+
+            # RMSE global pour cette réalisation
+            rmse_noisy_per_run[k] = np.sqrt(np.mean(errors_noisy**2))
+            rmse_sensor_filt_per_run[k] = np.sqrt(np.mean(errors_sensor_filt**2))
+            rmse_kf_per_run[k] = np.sqrt(np.mean(errors_kf**2))
+
+        # Statistiques Monte Carlo
+        # Moyenne et variance de l'erreur à chaque instant
+        mean_err_noisy = np.mean(errors_noisy, axis=0)
+        mean_err_sensor_filt = np.mean(errors_sensor_filt, axis=0)
+        mean_err_kf = np.mean(errors_kf, axis=0)
+
+        var_err_noisy = np.var(errors_noisy, axis=0)
+        var_err_sensor_filt = np.var(errors_sensor_filt, axis=0)
+        var_err_kf = np.var(errors_kf, axis=0)
+
+        # RMSE global pour résumé global
+        rmse_noisy = np.sqrt(np.mean(errors_noisy**2))
+        rmse_sensor_filt = np.sqrt(np.mean(errors_sensor_filt**2))
+        rmse_kf = np.sqrt(np.mean(errors_kf**2))
+
+        # Écart-type des RMSE entre réalisations
+        rmse_noisy_std = np.std(rmse_noisy_per_run, ddof=1)
+        rmse_sensor_filt_std = np.std(rmse_sensor_filt_per_run, ddof=1)
+        rmse_kf_std = np.std(rmse_kf_per_run, ddof=1)
+
+        # MCSE = écart-type / sqrt(N_MC)
+        mcse_noisy = rmse_noisy_std / np.sqrt(self.n_mc)
+        mcse_sensor_filt = rmse_sensor_filt_std / np.sqrt(self.n_mc)
+        mcse_kf = rmse_kf_std / np.sqrt(self.n_mc)
+
+        # Affichage des résultats
+        print("\nRMSE moyen par réalisation (Monte Carlo) + MCSE :")
+        print(f"  - Signal bruité : {rmse_noisy:.4f} +/- {mcse_noisy:.4f} (RMSE +/- MCSE)")
+        print(f"  - Filtre capteur : {rmse_sensor_filt:.4f} +/- {mcse_sensor_filt:.4f} (RMSE +/- MCSE)")
+        print(f"  - Filtre de Kalman : {rmse_kf:.4f} +/- {mcse_kf:.4f} (RMSE +/- MCSE)")
+
+        # Visualisation des résultats
+        t = self.abs_graph 
+
+        # Intervalle de confiance 95% ≈ moyenne ± 2*écart-type
+        std_err_noisy = np.sqrt(var_err_noisy)
+        std_err_sensor_filt = np.sqrt(var_err_sensor_filt)
+        std_err_kf = np.sqrt(var_err_kf)
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(t, x_true, label="Signal vrai", linewidth=2)
+
+        # Signal bruité
+        plt.plot(t, mean_err_noisy + x_true, label="Bruit moyen", linestyle="--")
+        plt.fill_between(t,
+                        x_true + mean_err_noisy - 2*std_err_noisy,
+                        x_true + mean_err_noisy + 2*std_err_noisy,
+                        alpha=0.2, label="IC 95% bruité")
+
+        # Filtre capteur
+        plt.plot(t, mean_err_sensor_filt + x_true, label="Capteur filtré moyen")
+        plt.fill_between(t,
+                        x_true + mean_err_sensor_filt - 2*std_err_sensor_filt,
+                        x_true + mean_err_sensor_filt + 2*std_err_sensor_filt,
+                        alpha=0.2, label="IC 95% capteur filt.")
+
+        # Filtre de Kalman
+        plt.plot(t, mean_err_kf + x_true, label="Kalman moyen")
+        plt.fill_between(t,
+                        x_true + mean_err_kf - 2*std_err_kf,
+                        x_true + mean_err_kf + 2*std_err_kf,
+                        alpha=0.2, label="IC 95% Kalman")
+
+        plt.xlabel("Temps")
+        plt.ylabel("Amplitude")
+        plt.title(f"Monte Carlo ({self.n_mc} itérations)")
+        plt.legend()
+        plt.xlim(1., 1.25)
+        plt.grid(True)
+        plt.show()
+
 def Moyenne_Glissante(signal, 
                       window_size):
     """Fonction pour appliquer une moyenne glissante à un signal."""
