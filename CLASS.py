@@ -71,8 +71,8 @@ class SignalFilter:
                       p_kalman, 
                       x_kalman):
         """Application d'un filtre de Kalman au signal."""
-        tau = 1 / (2 * pi * self.fc)    #constante de temps du filtre passe-bas
-        kalman_a = exp(-(1/self.fs)/tau)    #calcul du scalaire transition d'état
+        tau = 1 / (2 * pi * self.fc) #constante de temps du filtre passe-bas
+        kalman_a = exp(-(1/self.fs)/tau) #calcul du scalaire transition d'état
         kalman_b = self.gain*(1-exp(-(1/self.fs)/tau))  #calcul du scalaire de contrôle
         kalman_c = 1.   #calcul du scalaire d'observation
 
@@ -129,7 +129,9 @@ class Graphiques:
         if legend == "FFT": #annotation du maximum pour le graphique FFT
             max_y = np.max(y)
             max_x = x[np.argmax(y)]
-            plt.annotate(f'{max_x:.2f} Hz', xy=(max_x, max_y), xytext=(max_x, max_y + 0.1*max_y),
+            plt.annotate(f'{max_x:.2f} Hz',
+                         xy=(max_x, max_y),
+                         xytext=(max_x, max_y + 0.1*max_y),
                         arrowprops=dict(facecolor='black', shrink=0.05),
                         horizontalalignment='center')
         
@@ -167,7 +169,12 @@ class Graphiques:
         plt.ylabel(ord_graph_temp)
 
         plt.subplot(1, 2, 2)
-        count, bins, ignored = plt.hist(gaussian_ns, bins=1000, density=True, alpha=0.5, color='g', label='Histogramme')    #tracé de l'histogramme
+        count, bins, ignored = plt.hist(gaussian_ns,
+                                        bins=1000,
+                                        density=True,
+                                        alpha=0.5,
+                                        color='g',
+                                        label='Histogramme')    #tracé de l'histogramme
 
         mu, std = norm.fit(gaussian_ns)  #calcul de la moyenne et de l'écart-type
 
@@ -179,9 +186,16 @@ class Graphiques:
         x_position1 = -3*std_dev
         x_position2 = 3*std_dev
 
-        plt.axvline(x=x_position1, color='orange', linestyle='dashed', linewidth=1, label=f'Ligne 1 à -3 sigma: {x_position1:.2f}')
-        plt.axvline(x=x_position2, color='orange', linestyle='dashed', linewidth=1, label=f'Ligne 2 à 3 sigma: {x_position2:.2f}')
-
+        plt.axvline(x=x_position1, 
+                    color='orange',
+                    linestyle='dashed',
+                    linewidth=1,
+                    label=f'Ligne 1 à -3 sigma: {x_position1:.2f}')
+        plt.axvline(x=x_position2,
+                    color='orange',
+                    linestyle='dashed',
+                    linewidth=1,
+                    label=f'Ligne 2 à 3 sigma: {x_position2:.2f}')
 
         plt.title('Distribution de probabilité')
         plt.xlabel(abs_graph_Gauss)
@@ -203,7 +217,12 @@ class Graphiques:
         frequencies = fftfreq(n, 1/fs)  #calcul des fréquences associées
         positive_frequencies = frequencies[:n // 2] #fréquences positives
         amplitudes = 2.0 / n * np.abs(signal_fft[:n // 2])  #amplitudes correspondantes
-        self.plot_graph(positive_frequencies, amplitudes, "Spectre de fréquence du signal", abs_graph_FFT, ord_graph_FFT, "FFT", xlimit) #tracé du spectre de fréquence
+        self.plot_graph(positive_frequencies,
+                        amplitudes,
+                        "Spectre de fréquence du signal", 
+                        abs_graph_FFT, ord_graph_FFT,
+                        "FFT",
+                        xlimit) #tracé du spectre de fréquence
 
     def Bode_Diagram(self,
                      Liste_Filtre, 
@@ -231,8 +250,14 @@ class Graphiques:
             plt.title('Diagramme de Bode du capteur ' + str(id))
             plt.ylabel(ord_graph_bode_gain)
             plt.grid(which='both', linestyle='--')
-            plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
-            plt.axhline(y=-3, color='g', linestyle='--', label='-3 dB')
+            plt.axvline(x=fc,
+                        color='r',
+                        linestyle='--',
+                        label='Fréquence de coupure ' +str(fc)+' Hz')
+            plt.axhline(y=-3, 
+                        color='g',
+                        linestyle='--',
+                        label='-3 dB')
             plt.legend()
             
             plt.subplot(2, 1, 2)
@@ -240,8 +265,14 @@ class Graphiques:
             plt.xlabel(abs_graph_bode_phase)
             plt.ylabel(ord_graph_bode_phase)
             plt.grid(which='both', linestyle='--')
-            plt.axvline(x=fc, color='r', linestyle='--', label='Fréquence de coupure ' +str(fc)+' Hz')
-            plt.axhline(y=-45, color='g', linestyle='--', label='-45 °')
+            plt.axvline(x=fc,
+                        color='r',
+                        linestyle='--',
+                        label='Fréquence de coupure ' +str(fc)+' Hz')
+            plt.axhline(y=-45,
+                        color='g', 
+                        linestyle='--',
+                        label='-45 °')
             plt.legend()
 
             plt.tight_layout()
@@ -249,7 +280,14 @@ class Graphiques:
 
 class Monte_Carlo:
     """Classe pour effectuer des simulations de Monte Carlo."""
-    def __init__(self, signal_in, abs_graph, w_ns_mean, w_ns_std, capteur_out, kalman_out, n_mc):
+    def __init__(self,
+                 signal_in,
+                 abs_graph,
+                 w_ns_mean,
+                 w_ns_std,
+                 capteur_out,
+                 kalman_out,
+                 n_mc):
         self.signal_in = signal_in  #variable interne pour le signal d'entrée
         self.abs_graph = abs_graph  #abscisse pour le graphe
         self.w_ns_mean = w_ns_mean  #moyenne du bruit
