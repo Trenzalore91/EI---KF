@@ -67,34 +67,47 @@ class SignalFilter:
         
     def Filtre_kalman(self, 
                       sortie_filtre, 
-                      r_kalman, 
+                      a_kalman,
+                      b_kalman,
+                      c_kalman,
                       p_kalman, 
+                      q_kalman,
+                      r_kalman, 
                       x_kalman):
         """Application d'un filtre de Kalman au signal."""
-        tau = 1 / (2 * pi * self.fc) #constante de temps du filtre passe-bas
-        kalman_a = exp(-(1/self.fs)/tau) #calcul du scalaire transition d'état
-        kalman_b = self.gain*(1-exp(-(1/self.fs)/tau))  #calcul du scalaire de contrôle
-        kalman_c = 1.   #calcul du scalaire d'observation
+        #tau = 1 / (2 * pi * self.fc) #constante de temps du filtre passe-bas
+        kalman_a = a_kalman #exp(-(1/self.fs)/tau) #calcul du scalaire transition d'état
+        kalman_b = b_kalman #self.gain*(1-exp(-(1/self.fs)/tau))  #calcul du scalaire de contrôle
+        kalman_c = c_kalman #1.   #calcul du scalaire d'observation
 
-        kalman_q0 = self.noise_STD**2   #variance du bruit de processus
+        kalman_q0 = q_kalman #self.noise_STD**2   #variance du bruit de processus
         kalman_r0 = r_kalman    #variance du bruit de mesure
         kalman_p0 = p_kalman    #estimation initiale de l'erreur de covariance
         kalman_x0 = x_kalman    #estimation initiale de l'état
 
-        kf = KalmanFilter(dim_x=1, dim_z=1)  #initialisation du filtre de Kalman
-        kf.F = np.array([[kalman_a]])   #matrice de transition d'état
-        kf.H = np.array([[kalman_c]])   #matrice d'observation
-        kf.B = np.array([[kalman_b]])   #matrice de contrôle
-        kf.Q = np.array([[kalman_q0]])  #matrice de covariance du bruit de processus
-        kf.R = np.array([[kalman_r0]])  #matrice de covariance du bruit de mesure
-        kf.P = np.array([[kalman_p0]])  #matrice de covariance de l'erreur
-        kf.x = np.array([[kalman_x0]])  #état initial
+        kf = KalmanFilter(dim_x=1, dim_z=2)  #initialisation du filtre de Kalman
+        # kf.F = np.array([[kalman_a]])   #matrice de transition d'état
+        # kf.H = np.array([[kalman_c]])   #matrice d'observation
+        # kf.B = np.array([[kalman_b]])   #matrice de contrôle
+        # kf.Q = np.array([[kalman_q0]])  #matrice de covariance du bruit de processus
+        # kf.R = np.array([[kalman_r0]])  #matrice de covariance du bruit de mesure
+        # kf.P = np.array([[kalman_p0]])  #matrice de covariance de l'erreur
+        # kf.x = np.array([[kalman_x0]])  #état initial
+        kf.F = kalman_a   #matrice de transition d'état
+        kf.H = kalman_c   #matrice d'observation
+        kf.B = kalman_b   #matrice de contrôle
+        kf.Q = kalman_q0  #matrice de covariance du bruit de processus
+        kf.R = kalman_r0  #matrice de covariance du bruit de mesure
+        kf.P = kalman_p0  #matrice de covariance de l'erreur
+        kf.x = kalman_x0  #état initial
 
         filtered = []   #liste pour stocker les valeurs filtrées
         kalman_gains = []   #liste pour stocker les gains de Kalman
         for sortie_kalman, u_k in zip(sortie_filtre, self.entrée_pure): #itération sur les mesures et les entrées de contrôle
+            z_k = sortie_kalman.reshape(2, 1)  #remodelage de la mesure pour correspondre à la dimension attendue
             kf.predict(u=u_k)   #étape de prédiction
-            kf.update(sortie_kalman)    #étape de mise à jour
+            #kf.update(sortie_kalman)    #étape de mise à jour
+            kf.update(z_k)    #étape de mise à jour
             kalman_gains.append(kf.K[0, 0]) #stockage du gain de Kalman
             filtered.append(kf.x[0, 0]) #stockage de la valeur filtrée
         
