@@ -117,17 +117,25 @@ class SignalFilter:
 
         filtered = []   #liste pour stocker les valeurs filtrées
         kalman_gains = []   #liste pour stocker les gains de Kalman
+        x_k = []  #liste pour stocker les états estimés
+        p_k = []  #liste pour stocker les covariances d'erreur
+        innovations = []  #liste pour stocker les innovations
+        s_k = []  #liste pour stocker les covariances des innovations
 
         for sortie_kalman, u_k in zip(sortie_filtre, self.entrée_pure): #itération sur les mesures et les entrées de contrôle
             z_k = sortie_kalman #monovariable
             # z_k = sortie_kalman.reshape(2, 1)  #remodelage de la mesure pour correspondre à la dimension attendue - multivariable
             kf.predict(u=u_k)   #étape de prédiction
-            kf.update(z_k)
+            # kf.update(z_k)
             kf.update(z_k)    #étape de mise à jour
             kalman_gains.append(kf.K[0, 0]) #stockage du gain de Kalman
             filtered.append(kf.x[0, 0]) #stockage de la valeur filtrée 
+            x_k.append(kf.x.copy())  #stockage de l'état estimé
+            p_k.append(kf.P.copy())  #stockage de la covariance d'erreur
+            innovations.append(kf.y.copy()) #stockage de l'innovation
+            s_k.append(kf.S.copy())  #stockage de la covariance de l'innovation
             
-        return np.array(filtered), np.array(kalman_gains) #retourne le signal filtré et les gains de Kalman
+        return np.array(filtered), np.array(kalman_gains), np.array(x_k), np.array(p_k), np.array(innovations), np.array(s_k) #retourne le signal filtré et les gains de Kalman
         
 class Graphiques:
     """Classe pour tracer des graphiques avec différentes options."""
