@@ -11,23 +11,23 @@ Ce notebook a pour objectif d'étudier le fonctionnement d'un filtre de Kalman a
 Ce notebook contient:
 Section 1 : Librairies
 Section 2 : Variables
-Section 3 : Signaux
-    3.1. Signal sinusoïdal
-    3.2. Bruit blanc Gaussien
-    3.3. Signal sinusoïdal bruité
-    3.4. Passe-bas #1
-    3.5. Passe-bas #2
+Section 3 : Signal d'entrée
+    3.1. Signal sinusoïdal / Génération d'un signal sinusoïdal ou carré en fonction du paramètre de l'objet
+    3.2. Capteur Passe-bas
 Section 4 : Filtre de Kalman
 Section 5 : Graphiques
-    5.1. Mise en graphique du signal d'entrée pure
-    5.2. Mise en graphique du bruit blanc Gaussien
+    5.1. Mise en graphique du signal d'entrée pur
+    5.2. Mise en graphique du bruit blanc gaussien
     5.3. Mise en graphique du signal d'entrée bruité
     5.4. Graphique Bode Nyquist du/des filtres passe-bas
     5.5. Mise en graphique des signaux de sortie du/des passe-bas
     5.6. Mise en graphique de la sortie du filtre de Kalman
-    5.7. Graphiques comparatifs Signal d'entrée bruité, Signal de sortie du passe-bas, Kalman
-    5.8. Mise en graphique du ripple pré/post Kalman
-    5.9. Mise en graphique de la moyenne glissante et du filtre de Kalman
+    5.7. Mise en graphique du ripple pré/post Kalman
+    5.8. Mise en graphique de la moyenne glissante et du filtre de Kalman
+Section 6 : Calcul déphasage des signaux (bruité, Kalman et moyenne glissante)
+Section 7 : Export en .csv
+Section 8 : Export de l'animation en .gif
+Section 9 : Monte Carlo
 
 Pré-requis:
 - Python 3.12.1
